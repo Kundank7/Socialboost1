@@ -206,4 +206,57 @@ export async function updateWalletBalance(userId: number, amount: number) {
 
 //
 ::contentReference[oaicite:0]{index=0}
- 
+ // Deposit functions
+export async function createDeposit(deposit: Deposit) {
+  const result = await sql`
+    INSERT INTO deposits (user_id, amount, method, status, deposit_id)
+    VALUES (${deposit.user_id}, ${deposit.amount}, ${deposit.method}, ${deposit.status}, ${deposit.deposit_id})
+    RETURNING *`;
+  return result[0];
+}
+
+export async function getDepositById(depositId: string) {
+  const result = await sql`SELECT * FROM deposits WHERE deposit_id = ${depositId} LIMIT 1`;
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateDepositStatus(depositId: string, status: string) {
+  const result = await sql`
+    UPDATE deposits
+    SET status = ${status}
+    WHERE deposit_id = ${depositId}
+    RETURNING *`;
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getAllDeposits() {
+  return await sql`SELECT * FROM deposits ORDER BY created_at DESC`;
+}
+
+// Transaction functions
+export async function logTransaction(transaction: Transaction) {
+  const result = await sql`
+    INSERT INTO transactions (user_id, amount, type, description)
+    VALUES (${transaction.user_id}, ${transaction.amount}, ${transaction.type}, ${transaction.description})
+    RETURNING *`;
+  return result[0];
+}
+
+export async function getTransactionsByUserId(userId: number) {
+  return await sql`SELECT * FROM transactions WHERE user_id = ${userId} ORDER BY created_at DESC`;
+}
+
+// Admin functions
+export async function getStats() {
+  const [users, orders, deposits] = await Promise.all([
+    sql`SELECT COUNT(*) FROM users`,
+    sql`SELECT COUNT(*) FROM orders`,
+    sql`SELECT COUNT(*) FROM deposits`,
+  ]);
+  return {
+    users: Number(users[0].count),
+    orders: Number(orders[0].count),
+    deposits: Number(deposits[0].count),
+  };
+}
+
